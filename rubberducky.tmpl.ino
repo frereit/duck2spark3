@@ -15,6 +15,9 @@ uint8_t read(uint16_t offset) {
     return pgm_read_byte_near(program + offset);
 }
 
+#define COMMAND_DELAY 0xFF
+#define COMMAND_MODIFIER 0xFE
+
 void setup()
 {
     keystroke_delay = read(program_counter++) << 8 | read(program_counter++);
@@ -42,21 +45,18 @@ void loop()
         {
             digitalWrite(0, HIGH);
             digitalWrite(1, HIGH);
-            uint8_t mod = read(program_counter++);
-            uint8_t scancode = read(program_counter++);
-            if (scancode != 0)
-            {
-                DigiKeyboard.sendKeyStroke(scancode, mod);
+            uint8_t command = read(program_counter++);
+            switch(command) {
+                case COMMAND_DELAY: // Delay
+                    DigiKeyboard.delay(read(program_counter++) << 8 | read(program_counter++));
+                    break;
+                case COMMAND_MODIFIER: // Key with modifiers
+                    DigiKeyboard.sendKeyStroke(read(program_counter++), read(program_counter++));
+                    break;
+                default:
+                    DigiKeyboard.sendKeyStroke(command);
+                    break;
             }
-            else if (mod != 0)
-            {
-                uint16_t delay = mod | read(program_counter++);
-                DigiKeyboard.delay(delay);
-            }
-            else
-            {
-                break;
-            }            
             digitalWrite(0, LOW);
             digitalWrite(1, LOW);
             DigiKeyboard.delay(keystroke_delay);

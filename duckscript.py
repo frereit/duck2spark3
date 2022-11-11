@@ -1,7 +1,7 @@
 import argparse
 
 import keyboard
-
+from instructions import Instruction
 
 class DuckyScript2HIDConverter:
     def __init__(self, layout: str):
@@ -13,10 +13,12 @@ class DuckyScript2HIDConverter:
         self.aliases = {
             "VK_ALT": "VK_LMENU",
             "VK_WINDOWS": "VK_LWIN",
+            "VK_GUI": "VK_LWIN",
             "VK_OPTION": "VK_LMENU",
             "VK_COMMAND": "VK_LWIN",
             "VK_ESC": "VK_ESCAPE",
             "VK_BACKSPACE": "VK_BACK",
+            "VK_ENTER": "VK_RETURN",
         }
 
     def convert(self, script: str) -> bytes:
@@ -33,20 +35,20 @@ class DuckyScript2HIDConverter:
 
         instructions_as_bytes = []
         for line in script.splitlines():
-            if line.startswith("REM"):
+            if line.startswith("REM "):
                 continue
-            elif line.startswith("DEFAULTDELAY"):
+            elif line.startswith("DEFAULTDELAY "):
                 # To implement this, if the scancode is zero,
                 # the script would need to read the mod byte as a command
                 # and interpret any following bytes as arguments
                 # so that more than one (DELAY) metacommand can be implemented.
                 # This will be referred to as "DuckAsm" in the following comments.
                 raise NotImplementedError("DEFAULTDELAY is not implemented")
-            elif line.startswith("DEFAULTCHARDELAY"):
+            elif line.startswith("DEFAULTCHARDELAY "):
                 # To implement this, DuckAsm would need to be implemented.
                 raise NotImplementedError(
                     "DEFAULTCHARDELAY is not implemented")
-            elif line.startswith("DELAY"):
+            elif line.startswith("DELAY "):
                 if len(line.split()) != 2:
                     raise ValueError("DELAY requires one argument")
                 try:
@@ -57,19 +59,19 @@ class DuckyScript2HIDConverter:
                     raise ValueError(
                         "DELAY argument must be between 0 and 65535")
                 instructions_as_bytes.append(
-                    bytes([delay >> 8, 0x00, delay & 0xff]))
-            elif line.startswith("STRING"):
+                    bytes([Instruction.COMMAND_DELAY, delay >> 8, 0x00, delay & 0xff]))
+            elif line.startswith("STRING "):
                 if len(line.split(" ", maxsplit=1)) != 2:
                     raise ValueError("STRING requires an argument")
                 text = line.split(" ", maxsplit=1)[1]
                 instructions_as_bytes.append(self.textconverter.convert(text))
-            elif line.startswith("STRINGLN"):
+            elif line.startswith("STRINGLN "):
                 if len(line.split(" ", maxsplit=1)) != 2:
                     raise ValueError("STRINGLN requires an argument")
-                text = line.split(" ", maxsplit=1)[1]
+                text = line.split(" ", maxsplit=1)[1].strip()
                 instructions_as_bytes.append(
-                    self.textconverter.convert(text + b"\n"))
-            elif line.startswith("REPEAT"):
+                    self.textconverter.convert(text + "\n"))
+            elif line.startswith("REPEAT "):
                 try:
                     repeat = int(line.split(" ", 1)[1])
                 except ValueError:
@@ -102,7 +104,7 @@ class DuckyScript2HIDConverter:
                     raise NotImplementedError(
                         "Key %s is not implemented" % non_mod_keys[0])
                 instructions_as_bytes.append(
-                    bytes([mod, keyboard.Text2HIDConverter.PS2_TO_HID[scancode]]))
+                    bytes([Instruction.COMMAND_MODIFIER, mod, keyboard.Text2HIDConverter.PS2_TO_HID[scancode]]))
         return b"".join(instructions_as_bytes)
 
 

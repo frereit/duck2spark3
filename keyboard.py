@@ -1,6 +1,7 @@
 import logging
 from xml.etree import ElementTree as ET
 
+from instructions import Instruction
 
 class Text2HIDConverter:
     # According to https://www.usb.org/sites/default/files/hid1_11.pdf, p. 66
@@ -121,7 +122,12 @@ class Text2HIDConverter:
         curr_text = ""
         for char in text:
             if char in self.layout:
-                result += self.layout[char]
+                hid_sequence = self.layout[char]
+                if hid_sequence[0] == 0:
+                    # No modifier keys
+                    result += hid_sequence[1:]
+                else:
+                    result += bytes([Instruction.COMMAND_MODIFIER, hid_sequence[0], hid_sequence[1]])
                 curr_text = ""
             else:
                 curr_text += char

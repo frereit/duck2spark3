@@ -29,12 +29,15 @@ This is mostly just to remind myself how to do this, but I'll try to make it use
 
 Each instruction consists of at least two bytes.
 
-Parsing works as follows:
-1. Read and increment the instruction pointer twice, reading to `keystroke_delay_high` and `keystroke_delay_low`.
-2. Read and increment the instruction pointer twice, reading to `loop_count_high` and `loop_count_low`.
-3. Compute `keystroke_delay` and `loop_count` from the bytes read in steps 1-3, e.g. `keystroke_delay = keystroke_delay_high << 8 | keystroke_delay_low`.
-4. Read and increment instruction pointer as `mod`.
-5. Read and increment instruction pointer as `scancode`.
-6. If `scancode` is non-zero, then send the keypress for `scancode` with modifiers `mod`. Continue to step 4.
-7. Otherwise, if `mod` is non-zero, read and increment instruction pointer as `delay_low` and delay for `mod << 8 | delay_low` milliseconds. Continue to step 4.
-8. Otherwise, if `loop_count` is non-zero, decrement `loop_count`, reset the instruction pointer to 4, and continue to step 4.
+Setup works as follows:
+1. Initialize the program counter to 0.
+2. Read and increment the instruction pointer twice, reading to `keystroke_delay_high` and `keystroke_delay_low`.
+3. Read and increment the instruction pointer twice, reading to `loop_count_high` and `loop_count_low`.
+4. Compute `keystroke_delay` and `loop_count` from the bytes read in steps 1-3, e.g. `keystroke_delay = keystroke_delay_high << 8 | keystroke_delay_low`.
+
+The Loop works as follows:
+1. Read and increment instruction pointer as `command`.
+2. If `command < 0xE9`, then it is a HID usage id. Send the key with the given usage id.
+3. If `command == 0xFF`, then it is a delay. Read and increment instruction pointer twice, reading `delay_high`, then `delay_low`. Wait `delay_high << 8 | delay_low` milliseconds.
+4. If `command == 0xFE`, then it is a key with a modifier. Read and increment instruction pointer as `modifiers`. Read and increment instruction pointer as `key`. Send the key with the given modifiers and key.
+5. Decrement `loop_count`. If `loop_count != 0`, then go to step 1.

@@ -35,7 +35,7 @@ if __name__ == "__main__":
                         help="Keyboard layout file, downloaded from https://kbdlayout.info/ (XML for processing)")
     # int arguments between 0 and 65535
     parser.add_argument("--keystroke-delay", type=two_byte_type,
-                        default=300, help="Delay between keystrokes in milliseconds")
+                        default=30, help="Delay between keystrokes in milliseconds")
     parser.add_argument("--loop", type=two_byte_type, default=1,
                         help="Number of times to loop the script. 0 means infinite loop")
     args = parser.parse_args()
@@ -48,6 +48,5 @@ if __name__ == "__main__":
         print("Program may be too large to fit on the ATTiny85.")
         if input("Try anyway? (y/n)") != "y":
             sys.exit(1)
-    with open("test.bin", "wb") as f:
-        f.write(program)
+    print("Raw Program size: {} bytes".format(len(program)))
     compile_and_upload(program)
